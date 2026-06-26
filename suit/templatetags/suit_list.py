@@ -1,26 +1,13 @@
 from copy import copy
 from inspect import getfullargspec
+from urllib.parse import parse_qs
+
 from django import template
 from django.template.loader import get_template
 from django.utils.safestring import mark_safe
 from django.contrib.admin.templatetags.admin_list import result_list
 from django.contrib.admin.views.main import ALL_VAR, PAGE_VAR
 from django.utils.html import escape, format_html
-from suit.compat import tpl_context_class
-
-try:
-    # Python 3.
-    from urllib.parse import parse_qs
-except ImportError:
-    # Python 2.5+
-    from urlparse import urlparse
-
-    try:
-        # Python 2.6+
-        from urlparse import parse_qs
-    except ImportError:
-        # Python <=2.5
-        from cgi import parse_qs
 
 register = template.Library()
 
@@ -69,7 +56,7 @@ def pagination(cl):
     Generates the series of links to the pages in a paginated list.
     """
     pagination_required = (not cl.show_all or not cl.can_show_all) and cl.multi_page
-    page_range = cl.paginator.get_elided_page_range(cl.page_num) if pagination_required else []
+    page_range = list(cl.paginator.get_elided_page_range(cl.page_num)) if pagination_required else []
     need_show_all_link = cl.can_show_all and not cl.show_all and cl.multi_page
     return {
         'cl': cl,
@@ -116,12 +103,10 @@ def suit_list_filter_select(cl, spec):
                 choice['additional'] = '%s=%s' % (key, value)
             i += 1
 
-    return tpl.render(tpl_context_class({
-        'field_name': field_key,
-        'title': spec.title,
-        'choices': choices,
-        'spec': spec,
-    }))
+    return tpl.render({'field_name': field_key,
+                       'title': spec.title,
+                       'choices': choices,
+                       'spec': spec})
 
 
 @register.filter
@@ -129,7 +114,6 @@ def headers_handler(result_headers, cl):
     """
     Adds field name to css class, so we can style specific columns
     """
-    # field = cl.list_display.get()
     attrib_key = 'class_attrib'
     for i, header in enumerate(result_headers):
         field_name = cl.list_display[i]

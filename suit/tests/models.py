@@ -3,20 +3,13 @@ from django.contrib import admin
 
 
 def test_app_label():
-    """
-    Since Django 1.7 app_label while running tests is "suit"
-    instead of "tests" in Django < 1.7
-    """
-    try:
-        return Book._meta.app_label
-    except:
-        return 'tests'
+    return Book._meta.app_label
 
 
 class Book(models.Model):
     name = models.CharField(max_length=64)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -26,10 +19,11 @@ class Book(models.Model):
 class Album(models.Model):
     name = models.CharField(max_length=64)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
+@admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
     list_filter = ('id', 'name',)
     list_display = ('id', 'name',)
@@ -44,6 +38,7 @@ class BookAdmin(admin.ModelAdmin):
                 'data': obj.pk}
 
 
+@admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
     def suit_row_attributes(self, obj):
         """No request defined to test backward-compatibility"""
@@ -58,6 +53,4 @@ class User(models.Model):
     name = models.CharField(max_length=64)
 
 
-admin.site.register(Book, BookAdmin)
-admin.site.register(Album, AlbumAdmin)
 admin.site.register(User)

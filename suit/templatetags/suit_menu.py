@@ -1,37 +1,17 @@
-import django
 from django import template
 from django.contrib import admin
 from django.contrib.admin import AdminSite
 from django.http import HttpRequest
-
-try:
-    from django.core.urlresolvers import reverse, resolve
-except ImportError:
-    # For Django >= 2.0
-    from django.urls import reverse, resolve
-
-try:
-    from django.utils.six import string_types
-except ImportError:
-    # For Django < 1.4.2
-    string_types = str,
+from django.urls import reverse, resolve
 
 import re
 import warnings
 from suit.config import get_config
-from suit import utils
 
 register = template.Library()
 
-django_version = utils.django_major_version()
 
-if django_version < (1, 9):
-    simple_tag = register.assignment_tag
-else:
-    simple_tag = register.simple_tag
-
-
-@simple_tag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def get_menu(context, request):
     """
     :type request: HttpRequest
@@ -39,20 +19,13 @@ def get_menu(context, request):
     if not isinstance(request, HttpRequest):
         return None
 
-    # Try to get app list
-    if hasattr(request, 'current_app'):
-        # Django 1.8 uses request.current_app instead of context.current_app
-        template_response = get_admin_site(request.current_app).index(request)
-    else:
-        try:
-            template_response = get_admin_site(context.current_app).index(request)
-        # Django 1.10 removed the current_app parameter for some classes and functions. 
-        # Check the release notes.
-        except AttributeError:
-            template_response = get_admin_site(context.request.resolver_match.namespace).index(request)
+    try:
+        admin_site = get_admin_site(context.current_app)
+    except AttributeError:
+        admin_site = get_admin_site(context.request.resolver_match.namespace)
 
     try:
-        app_list = template_response.context_data['app_list']
+        app_list = admin_site.get_app_list(request)
     except Exception:
         return
 
@@ -67,7 +40,6 @@ def get_admin_site(current_app):
     """
     try:
         resolver_match = resolve(reverse('%s:index' % current_app))
-        # Django 1.9 exposes AdminSite instance directly on view function
         if hasattr(resolver_match.func, 'admin_site'):
             return resolver_match.func.admin_site
 
@@ -79,7 +51,7 @@ def get_admin_site(current_app):
     return admin.site
 
 
-class Menu(object):
+class Menu:
     app_activated = False
     MULTIPLE_MODELS_RE = re.compile(r'([^*]*)[*]')
 
@@ -105,7 +77,7 @@ class Menu(object):
         # Init config variables
         self.init_config()
 
-        super(Menu, self).__init__()
+        super().__init__()
 
     def init_config(self):
         self.conf_exclude = get_config('MENU_EXCLUDE')
@@ -144,7 +116,7 @@ class Menu(object):
     def make_app(self, app_def):
         if isinstance(app_def, dict):
             app = app_def.copy()
-        elif isinstance(app_def, string_types):
+        elif isinstance(app_def, str):
             if app_def == '-':
                 app = self.make_separator()
             else:
@@ -281,7 +253,7 @@ class Menu(object):
         app['models'] = models
 
     def make_models(self, model_def, app_name):
-        if not isinstance(model_def, string_types):
+        if not isinstance(model_def, str):
             model = self.make_model(model_def, app_name)
             return [model] if model else []
         match = self.MULTIPLE_MODELS_RE.match(model_def)
@@ -303,7 +275,7 @@ class Menu(object):
     def make_model(self, model_def, app_name):
         if isinstance(model_def, dict):
             model = model_def.copy()
-        elif isinstance(model_def, string_types):
+        elif isinstance(model_def, str):
             model = self.make_model_from_native(model_def, app_name)
         else:
             raise TypeError('MENU list item must be string or dict. Got %s'
@@ -510,7 +482,7 @@ class Menu(object):
             if isinstance(order, (tuple, list)):
                 app_name = order[0]
                 models_order = order[1] if len(order) > 1 else None
-                if isinstance(app_name, string_types):
+                if isinstance(app_name, str):
                     new_app['app'] = app_name
                 elif isinstance(app_name, (tuple, list)):
                     mapping = ('label', 'url', 'icon', 'permissions')
@@ -519,7 +491,7 @@ class Menu(object):
                 if models_order and isinstance(models_order, (tuple, list)):
                     models = []
                     for model in models_order:
-                        if isinstance(model, string_types):
+                        if isinstance(model, str):
                             models.append({'model': model})
                         elif isinstance(model, (list, tuple)):
                             mapping = ('label', 'url', 'permissions')

@@ -1,21 +1,11 @@
 from django.conf import settings
 from django.contrib.auth.models import Permission
+from django.urls import reverse
+from django.utils.encoding import force_str
 from suit.templatetags.suit_menu import get_menu
 from suit.tests.mixins import ModelsTestCaseMixin, UserTestCaseMixin
 from suit.tests.models import test_app_label
 
-try:
-    from django.core.urlresolvers import reverse
-except ImportError:
-    # For Django >= 2.0
-    from django.urls import reverse
-
-
-# conditional import, force_unicode was renamed in Django 1.5
-try:
-    from django.utils.encoding import force_unicode
-except ImportError:
-    from django.utils.encoding import force_text as force_unicode
 
 app_label = test_app_label()
 
@@ -127,7 +117,7 @@ class SuitMenuTestCase(ModelsTestCaseMixin, UserTestCaseMixin):
         self.assertEqual(menu[i]['label'], app_label.title())
         self.assertEqual(menu[i]['icon'], None)
         self.assertEqual(menu[i]['models'][0]['url'], first_model_url)
-        self.assertEqual(force_unicode(menu[0]['models'][0]['label']), 'Albums')
+        self.assertEqual(force_str(menu[0]['models'][0]['label']), 'Albums')
 
         i += 1 # as dict
         self.assertEqual(menu[i]['url'], first_model_url)
@@ -203,13 +193,13 @@ class SuitMenuTestCase(ModelsTestCaseMixin, UserTestCaseMixin):
         first_model_url = reverse('admin:%s_book_changelist' % app_label)
         self.assertEqual(menu[i]['models'][0]['url'], first_model_url)
         self.assertEqual(len(menu[i]['models']), 4)
-        self.assertEqual(force_unicode(menu[i]['models'][2]['label']),
+        self.assertEqual(force_str(menu[i]['models'][2]['label']),
                          mc[i]['models'][2]['label'])
-        self.assertEqual(force_unicode(menu[i]['models'][2]['url']),
+        self.assertEqual(force_str(menu[i]['models'][2]['url']),
                          mc[i]['models'][2]['url'])
-        self.assertEqual(force_unicode(menu[i]['models'][3]['label']),
+        self.assertEqual(force_str(menu[i]['models'][3]['label']),
                          mc[i]['models'][3]['label'])
-        self.assertEqual(force_unicode(menu[i]['models'][3]['url']),
+        self.assertEqual(force_str(menu[i]['models'][3]['url']),
                          mc[i]['models'][3]['url'])
 
 
