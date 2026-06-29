@@ -1,23 +1,12 @@
+import django
+django.setup()
+
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management import CommandError
 from django.core.management import call_command
 from django.test import TestCase
+from django.urls import reverse
 from random import randint
-
-# Django 1.7 compatiblity
-try:
-    import django
-
-    django.setup()
-except AttributeError:
-    pass
-
-try:
-    from django.core.urlresolvers import reverse
-except ImportError:
-    # For Django >= 2.0
-    from django.urls import reverse
 
 
 class UserTestCaseMixin(TestCase):
@@ -59,20 +48,10 @@ class ModelsTestCaseMixin(TestCase):
             list(self.saved_INSTALLED_APPS) + [test_app]
         )
         settings.DEBUG = True
-
-        # Legacy Django < 1.9: load our fake application and syncdb
-        try:
-            from django.db.models.loading import load_app
-            load_app(test_app)
-        except ImportError:
-            pass
-        try:
-            call_command('syncdb', verbosity=0, interactive=False)
-        except CommandError:
-            pass
-        super(ModelsTestCaseMixin, self)._pre_setup()
+        call_command('migrate', verbosity=0, interactive=False)
+        super()._pre_setup()
 
     def _post_teardown(self):
         settings.INSTALLED_APPS = self.saved_INSTALLED_APPS
         settings.DEBUG = self.saved_DEBUG
-        super(ModelsTestCaseMixin, self)._post_teardown()
+        super()._post_teardown()
